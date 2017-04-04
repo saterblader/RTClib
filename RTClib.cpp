@@ -504,3 +504,100 @@ void RTC_DS3231::writeSqwPinMode(Ds3231SqwPinMode mode) {
 
   //Serial.println( read_i2c_register(DS3231_ADDRESS, DS3231_CONTROL), HEX);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// RTC_MCP7940N implementation
+
+boolean RTC_MCP7940N::begin(void)
+{
+	Wire.begin();
+	return true;
+}
+
+uint8_t RTC_MCP7940N::isrunning(void) {
+	Wire.beginTransmission(MCP7940N_ADDRESS);
+	Wire._I2C_WRITE((byte)3);
+	Wire.endTransmission();
+
+	Wire.requestFrom(MCP7940N_ADDRESS, 1);
+	uint8_t ss = Wire._I2C_READ();
+	return (ss>>5);
+}
+
+void RTC_MCP7940N::adjust(const DateTime& dt)
+{
+	Wire.beginTransmission(MCP7940N_ADDRESS);
+	Wire._I2C_WRITE((byte)0); // start at location 0
+	Wire._I2C_WRITE(bin2bcd(dt.second())^0x80); // set seconds and enable osc.
+	Wire._I2C_WRITE(bin2bcd(dt.minute()));
+	Wire._I2C_WRITE(bin2bcd(dt.hour()));
+	Wire._I2C_WRITE(0x08); //enable battery backup
+	Wire._I2C_WRITE(bin2bcd(dt.day()));
+	Wire._I2C_WRITE(bin2bcd(dt.month()));
+	Wire._I2C_WRITE(bin2bcd(dt.year() - 2000));
+	Wire.endTransmission();
+}
+
+boolean RTC_MCP7940N::lostPower(void)
+{
+	Wire.beginTransmission(MCP7940N_ADDRESS);
+	Wire._I2C_WRITE((byte)3);
+	Wire.endTransmission();
+
+	Wire.requestFrom(MCP7940N_ADDRESS, 1);
+	uint8_t ss = Wire._I2C_READ();
+	ss &= 0x20;
+	return (ss>>4);
+}
+
+boolean RTC_MCP7940N::initialized(void)
+{
+	Wire.beginTransmission(MCP7940N_ADDRESS);
+	Wire._I2C_WRITE((byte)0);
+	Wire.endTransmission();
+
+	Wire.requestFrom(MCP7940N_ADDRESS, 1);
+	uint8_t ss = Wire._I2C_READ();
+	return (ss>>7);
+}
+
+DateTime RTC_MCP7940N::now()
+{
+	Wire.beginTransmission(MCP7940N_ADDRESS);
+	Wire._I2C_WRITE((byte)0);	
+	Wire.endTransmission();
+
+	Wire.requestFrom(MCP7940N_ADDRESS, 7);
+	uint8_t ss = bcd2bin(Wire._I2C_READ() & 0x7F);
+	uint8_t mm = bcd2bin(Wire._I2C_READ());
+	uint8_t hh = bcd2bin(Wire._I2C_READ());
+	Wire._I2C_READ();  // skip 'weekdays'
+	uint8_t d = bcd2bin(Wire._I2C_READ());
+	uint8_t m = bcd2bin(Wire._I2C_READ());
+	uint16_t y = bcd2bin(Wire._I2C_READ()) + 2000;
+
+	return DateTime (y, m, d, hh, mm, ss);
+}
+
+MCP7940NSqwPinMode RTC_MCP7940N::readSqwPinMode()
+{
+	uint8_t mode;
+
+	Wire.beginTransmission(MCP7940N_ADDRESS);
+	Wire._I2C_WRITE(MCP7940N_CONTROL);
+	Wire.endTransmission();
+
+	Wire.requestFrom(MCP7940N_ADDRESS, 1);
+	mode = Wire._I2C_READ();
+
+	mode &= 0x43;
+	return static_cast<MCP7940NSqwPinMode>(mode);
+}
+
+void RTC_MCP7940N::writeSqwPinMode(MCP7940NSqwPinMode mode)
+{
+	Wire.beginTransmission(MCP7940N_ADDRESS);
+	Wire._I2C_WRITE(MCP7940N_CONTROL);
+	Wire._I2C_WRITE(mode);
+	Wire.endTransmission();
+}

@@ -20,6 +20,9 @@ class TimeSpan;
 #define DS3231_CONTROL  0x0E
 #define DS3231_STATUSREG 0x0F
 
+#define MCP7940N_ADDRESS 0x6F
+#define MCP7940N_CONTROL 0x07
+
 #define SECONDS_PER_DAY 86400L
 
 #define SECONDS_FROM_1970_TO_2000 946684800
@@ -118,6 +121,21 @@ public:
 
     Pcf8523SqwPinMode readSqwPinMode();
     void writeSqwPinMode(Pcf8523SqwPinMode mode);
+};
+
+// RTC based on the MCP7940N chip connected via I2C and the Wire library
+enum MCP7940NSqwPinMode { MCP7940N_OFF = 0x00, MCP7940N_SquareWave1Hz = 0x40, MCP7940N_SquareWave4096Hz = 0x41, MCP7940N_SquareWave8192Hz = 0x42, MCP7940N_SquareWave32768Hz = 0x43 };
+class RTC_MCP7940N {
+public:
+    boolean begin(void);
+	uint8_t isrunning(void);
+    void adjust(const DateTime& dt);
+    boolean initialized(void);
+	boolean lostPower(void);
+    static DateTime now();
+	
+	static MCP7940NSqwPinMode readSqwPinMode();
+    static void writeSqwPinMode(MCP7940NSqwPinMode mode);
 };
 
 // RTC using the internal millis() clock, has to be initialized before use

@@ -10,6 +10,7 @@ DateTime	KEYWORD1
 RTC_DS1307	KEYWORD1
 RTC_Millis	KEYWORD1
 Ds1307SqwPinMode	KEYWORD1
+RTC_MCP7940N	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
